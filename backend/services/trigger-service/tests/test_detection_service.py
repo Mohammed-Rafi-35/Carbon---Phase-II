@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from threading import Lock
+
 from app.db.session import SessionLocal
 from app.events.publisher import TriggerEventPublisher
 from app.integrations.external_sources import ZoneSnapshot
-from app.services.detection_service import DetectionService
+from app.services.detection_service import DetectionService, run_detection_cycle
 from app.services.trigger_service import TriggerService
 
 
@@ -86,3 +88,25 @@ def test_publisher_emits_contract_shape(monkeypatch):
     assert message["payload"]["zone"] == "MR-2"
     assert message["payload"]["type"] == "weather"
     assert message["payload"]["severity"] == "HIGH"
+
+
+def test_run_detection_cycle_skips_when_lock_not_acquired(monkeypatch):
+    call_count = {"value": 0}
+
+    def increment_and_return(self, zones):
+        _ = zones
+        call_count["value"] += 1
+        return 0
+
+    held_lock = Lock()
+    held_lock.acquire()
+
+    monkeypatch.setattr("app.services.detection_service._LOCAL_SCHEDULER_LOCK", held_lock)
+    monkeypatch.setattr("app.services.detection_service.DetectionService.poll_sources", increment_and_return)
+
+    try:
+        run_detection_cycle()
+    finally:
+        held_lock.release()
+
+    assert call_count["value"] == 0

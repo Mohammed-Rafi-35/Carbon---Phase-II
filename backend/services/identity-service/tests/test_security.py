@@ -12,7 +12,7 @@ def test_password_hashing_roundtrip():
 
 
 def test_expired_token_rejected():
-    token = create_access_token("abc", expires_delta_seconds=-1)
+    token, _jti, _exp = create_access_token("abc", role="worker", expires_delta_seconds=-1)
     try:
         decode_access_token(token)
         assert False, "Expected token decoding to fail for expired token"

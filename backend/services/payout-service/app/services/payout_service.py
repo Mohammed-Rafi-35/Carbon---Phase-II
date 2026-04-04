@@ -53,6 +53,14 @@ class PayoutService:
             )
         except IntegrityError as exc:
             self.db.rollback()
+            raced_by_key = self.payout_repository.get_by_idempotency_key(idempotency_key)
+            if raced_by_key and raced_by_key.claim_id == payload.claim_id and raced_by_key.user_id == payload.user_id:
+                return ProcessPayoutData(transaction_id=raced_by_key.id, status=raced_by_key.status)
+
+            raced_by_claim = self.payout_repository.get_by_claim_id(payload.claim_id)
+            if raced_by_claim:
+                raise AppError("Duplicate payout for claim.", "DUPLICATE_PAYOUT", 409) from exc
+
             raise AppError("Duplicate payout detected.", "DUPLICATE_PAYOUT", 409) from exc
 
         gateway_result = self.gateway.process_payout(

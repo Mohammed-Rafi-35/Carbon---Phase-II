@@ -8,7 +8,13 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.constants import AUTH_HEADER_NAME, BEARER_PREFIX, ERROR_INVALID_AUTH_HEADER, REQUEST_ID_HEADER_NAME
+from app.core.constants import (
+	AUTH_HEADER_NAME,
+	BEARER_PREFIX,
+	ERROR_INVALID_AUTH_HEADER,
+	IDEMPOTENCY_KEY_HEADER_NAME,
+	REQUEST_ID_HEADER_NAME,
+)
 from app.core.exceptions import AppError
 from app.core.security import decode_access_token
 from app.db.session import get_db
@@ -27,6 +33,16 @@ def get_request_id(request_id: str | None = Header(default=None, alias=REQUEST_I
 	if not request_id:
 		raise AppError("X-Request-ID header is required.", "MISSING_REQUEST_ID", 400)
 	return request_id
+
+
+def get_idempotency_key(
+	idempotency_key: str | None = Header(default=None, alias=IDEMPOTENCY_KEY_HEADER_NAME),
+) -> str:
+	if not idempotency_key:
+		raise AppError("Idempotency-Key header is required.", "MISSING_IDEMPOTENCY_KEY", 400)
+	if len(idempotency_key) > 128:
+		raise AppError("Idempotency-Key header is too long.", "INVALID_IDEMPOTENCY_KEY", 400)
+	return idempotency_key
 
 
 def get_token_payload(token: str = Depends(get_authorization_header)) -> dict:

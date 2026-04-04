@@ -37,6 +37,7 @@ def publish_policy_event(event_type: str, payload: dict) -> None:
                 routing_key=f"policy.{event_type.lower()}",
                 declare=[queue],
                 serializer="json",
+                delivery_mode=2,
                 retry=True,
             )
     except Exception as exc:

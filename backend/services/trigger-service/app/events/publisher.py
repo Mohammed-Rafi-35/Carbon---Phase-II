@@ -57,6 +57,7 @@ class TriggerEventPublisher:
                     routing_key=self.settings.trigger_routing_key,
                     declare=[self.queue],
                     serializer="json",
+                    delivery_mode=2,
                     retry=True,
                 )
         except Exception as exc:

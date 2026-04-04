@@ -18,6 +18,7 @@ class Role(StrEnum):
 
 class ClaimStatus(StrEnum):
 	INITIATED = "initiated"
+	PROCESSING = "processing"
 	VALIDATED = "validated"
 	EVALUATED = "evaluated"
 	APPROVED = "approved"

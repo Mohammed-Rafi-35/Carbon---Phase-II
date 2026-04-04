@@ -12,6 +12,7 @@ class RiskEvaluationResult:
     risk_score: float
     risk_category: str
     premium_multiplier: float
+    degraded: bool = False
 
 
 class AIRiskServiceClient:
@@ -44,7 +45,12 @@ class AIRiskServiceClient:
         try:
             response = self.client.post("/api/v1/risk/evaluate", headers=headers, json=payload)
             if response.status_code >= 400:
-                return RiskEvaluationResult(risk_score=0.5, risk_category="MEDIUM", premium_multiplier=1.0)
+                return RiskEvaluationResult(
+                    risk_score=0.5,
+                    risk_category="MEDIUM",
+                    premium_multiplier=1.0,
+                    degraded=response.status_code >= 500,
+                )
 
             body = response.json()
             data = body.get("data", body)
@@ -54,7 +60,12 @@ class AIRiskServiceClient:
                 premium_multiplier=float(data.get("premium_multiplier", 1.0)),
             )
         except Exception:
-            return RiskEvaluationResult(risk_score=0.5, risk_category="MEDIUM", premium_multiplier=1.0)
+            return RiskEvaluationResult(
+                risk_score=0.5,
+                risk_category="MEDIUM",
+                premium_multiplier=1.0,
+                degraded=True,
+            )
 
     @staticmethod
     def _build_metrics(*, severity: str | None, event_type: str | None) -> dict[str, float]:

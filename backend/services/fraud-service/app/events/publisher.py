@@ -41,6 +41,7 @@ class FraudEventPublisher:
                     routing_key=self.settings.fraud_detected_routing_key,
                     declare=[self.queue],
                     serializer="json",
+                    delivery_mode=2,
                     retry=True,
                 )
         except Exception as exc:

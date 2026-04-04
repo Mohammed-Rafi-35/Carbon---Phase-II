@@ -10,6 +10,7 @@ from app.api.v1.dependencies import (
     get_authorization_header,
     get_current_subject,
     get_db_session,
+    get_idempotency_key,
     get_request_id,
     require_roles,
 )
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 @router.post("/auto", response_model=StandardResponse, status_code=status.HTTP_201_CREATED)
 def auto_create_claim(
     payload: AutoClaimRequest,
+    idempotency_key: str = Depends(get_idempotency_key),
     _: str = Depends(get_authorization_header),
     __: str = Depends(get_request_id),
     ___: str = Depends(require_roles("service", "admin", "worker")),
@@ -33,7 +35,11 @@ def auto_create_claim(
     db: Session = Depends(get_db_session),
 ) -> dict:
     service = ClaimService(db)
-    claim = service.auto_create_claim(user_id=payload.user_id, event_id=payload.event_id)
+    claim = service.auto_create_claim(
+        user_id=payload.user_id,
+        event_id=payload.event_id,
+        idempotency_key=idempotency_key,
+    )
     return success_response({"claim_id": claim.id, "status": claim.status})
 
 
@@ -72,7 +78,7 @@ def get_claim_detail(
     return success_response(detail.model_dump())
 
 
-@router.post("/process", response_model=StandardResponse)
+@router.post("/process", response_model=StandardResponse, status_code=status.HTTP_202_ACCEPTED)
 def process_claim(
     payload: ProcessClaimRequest,
     token: str = Depends(get_authorization_header),

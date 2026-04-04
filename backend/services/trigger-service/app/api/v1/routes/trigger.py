@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.dependencies import enforce_rate_limit, get_db_session, get_request_id, get_token_payload
+from app.core.config import get_settings
+from app.core.exceptions import AppError
 from app.schemas.trigger import StopTriggerRequest, TriggerMockRequest
 from app.services.trigger_service import TriggerService
 from app.utils.responses import success_response
@@ -23,6 +25,14 @@ def trigger_mock_event(
     __: str = Depends(get_request_id),
     db: Session = Depends(get_db_session),
 ) -> dict:
+    settings = get_settings()
+    if not settings.enable_manual_trigger:
+        raise AppError(
+            "Manual trigger endpoint is disabled. Use scheduler-driven detection.",
+            "MANUAL_TRIGGER_DISABLED",
+            403,
+        )
+
     service = TriggerService(db=db)
     disruption = service.create_manual_trigger(
         zone=payload.zone,

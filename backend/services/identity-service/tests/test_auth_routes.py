@@ -16,7 +16,8 @@ def test_register_user_success(client):
     assert body["status"] == "success"
     assert body["error"] is None
     assert body["data"]["user_id"]
-    assert body["data"]["token"]
+    assert body["data"]["access_token"]
+    assert body["data"]["refresh_token"]
 
 
 def test_register_duplicate_phone(client):
@@ -61,7 +62,8 @@ def test_login_success(client):
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "success"
-    assert body["data"]["token"]
+    assert body["data"]["access_token"]
+    assert body["data"]["refresh_token"]
 
 
 def test_validate_session(client):
@@ -74,7 +76,7 @@ def test_validate_session(client):
             "password": "SecurePass123",
         },
     )
-    token = reg.json()["data"]["token"]
+    token = reg.json()["data"]["access_token"]
 
     response = client.get(
         "/api/v1/auth/validate",

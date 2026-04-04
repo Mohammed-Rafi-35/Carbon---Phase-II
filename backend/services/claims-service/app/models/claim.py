@@ -15,12 +15,14 @@ class Claim(Base):
     __tablename__ = "claims"
     __table_args__ = (
         UniqueConstraint("user_id", "event_id", name="uq_claims_user_event"),
+        UniqueConstraint("idempotency_key", name="uq_claims_idempotency_key"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
     policy_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     event_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
     fraud_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)

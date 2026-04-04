@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.core.config import get_settings
+
 
 def test_trigger_lifecycle(client, auth_headers):
     payload = {
@@ -53,3 +55,31 @@ def test_stop_nonexistent_event(client, auth_headers):
     body = response.json()
     assert body["status"] == "error"
     assert body["error"]["code"] == "EVENT_NOT_FOUND"
+
+
+def test_manual_trigger_disabled(client, auth_headers):
+    settings = get_settings()
+    previous = settings.enable_manual_trigger
+    settings.enable_manual_trigger = False
+    try:
+        response = client.post(
+            "/api/v1/trigger/mock",
+            json={"zone": "MR-2", "type": "weather", "severity": "HIGH"},
+            headers=auth_headers,
+        )
+    finally:
+        settings.enable_manual_trigger = previous
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "MANUAL_TRIGGER_DISABLED"
+
+
+def test_health_contract(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["data"]["service"] == "trigger-service"
+    assert payload["data"]["checks"]["database"] in {"up", "down"}

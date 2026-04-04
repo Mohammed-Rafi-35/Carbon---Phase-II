@@ -98,6 +98,7 @@ class PayoutEventConsumer:
                     routing_key=self.settings.claim_approved_event_routing_key,
                     headers={"x-retry-count": retries + 1},
                     declare=[self.queue],
+                    delivery_mode=2,
                     retry=True,
                 )
             else:
@@ -108,6 +109,7 @@ class PayoutEventConsumer:
                     routing_key=f"{self.settings.payout_inbound_queue_name}.failed",
                     headers={"x-last-error": str(exc)},
                     declare=[self.dlq],
+                    delivery_mode=2,
                     retry=True,
                 )
             message.ack()

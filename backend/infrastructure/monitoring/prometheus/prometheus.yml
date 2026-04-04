@@ -1,0 +1,54 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: api-gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets: [api-gateway:8000]
+
+  - job_name: identity-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [identity-service:8000]
+
+  - job_name: policy-pricing-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [policy-pricing-service:8000]
+
+  - job_name: ai-risk-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ai-risk-service:8000]
+
+  - job_name: trigger-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [trigger-service:8000]
+
+  - job_name: claims-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [claims-service:8000]
+
+  - job_name: fraud-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [fraud-service:8000]
+
+  - job_name: payout-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [payout-service:8000]
+
+  - job_name: notification-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [notification-service:8000]
+
+  - job_name: analytics-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [analytics-service:8000]

@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.responses import Response
 
@@ -93,7 +94,36 @@ async def prometheus_middleware(request, call_next):
 
 @app.get("/health")
 def health() -> dict:
-	return {"status": "healthy"}
+	checks: dict[str, str] = {
+		"database": "down",
+		"event_consumer": "disabled",
+	}
+	status = "unhealthy"
+
+	try:
+		with engine.connect() as connection:
+			connection.execute(text("SELECT 1"))
+		checks["database"] = "up"
+	except Exception:
+		checks["database"] = "down"
+
+	if settings.enable_event_consumer and settings.app_env != "test":
+		checks["event_consumer"] = "up" if event_consumer is not None else "down"
+	else:
+		checks["event_consumer"] = "disabled"
+
+	if checks["database"] == "up" and checks["event_consumer"] in {"up", "disabled"}:
+		status = "healthy"
+
+	return {
+		"status": "success",
+		"data": {
+			"service": "claims-service",
+			"status": status,
+			"checks": checks,
+		},
+		"error": None,
+	}
 
 
 @app.get("/metrics")

@@ -1,0 +1,54 @@
+name: backend-platform-validation
+
+on:
+  push:
+    paths:
+      - backend/**
+      - .github/workflows/backend-platform-validation.yml
+  pull_request:
+    paths:
+      - backend/**
+      - .github/workflows/backend-platform-validation.yml
+  workflow_dispatch:
+    inputs:
+      run_live_e2e:
+        description: Run live autonomous claim-to-payout E2E (requires running stack and token)
+        required: false
+        default: "false"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Static analysis
+        run: python -m compileall backend
+
+      - name: Validate docker compose manifests
+        run: |
+          docker compose -f backend/docker-compose.yml config -q
+          docker compose -f backend/infrastructure/docker/docker-compose.dev.yml config -q
+          docker compose -f backend/infrastructure/docker/docker-compose.prod.yml config -q
+
+      - name: Run integration validations
+        run: pytest -q backend/tests/integration
+
+      - name: Run live E2E (optional)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_live_e2e == 'true'
+        env:
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_BEARER_TOKEN: ${{ secrets.E2E_BEARER_TOKEN }}
+          E2E_USER_ID: ${{ vars.E2E_USER_ID }}
+        run: pytest -q backend/tests/e2e/test_claim_to_payout_autonomous.py

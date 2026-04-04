@@ -12,7 +12,7 @@ def _register_and_token(client, phone: str, email: str):
         },
     )
     body = response.json()["data"]
-    return body["user_id"], body["token"]
+    return body["user_id"], body["access_token"]
 
 
 def test_create_worker_profile_success(client):

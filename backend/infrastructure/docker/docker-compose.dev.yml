@@ -1,4 +1,28 @@
 services:
+  prometheus:
+    image: prom/prometheus:v3.7.1
+    container_name: prometheus-dev
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana-dev
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_dev_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+
   identity-db:
     image: postgres:16
     container_name: identity-db-dev
@@ -190,7 +214,7 @@ services:
       APP_ENV: development
       ENFORCE_HTTPS: "false"
       AUTO_CREATE_TABLES: "false"
-      ENABLE_SCHEDULER: "false"
+      ENABLE_SCHEDULER: "true"
       JWT_SECRET: dev-secret
       PORT: "8000"
     depends_on:
@@ -337,10 +361,36 @@ services:
     environment:
       APP_ENV: development
       ENFORCE_HTTPS: "false"
+      JWT_SECRET: dev-secret
+      JWT_ALGORITHM: HS256
+      CORS_ALLOW_ORIGINS_CSV: http://localhost:5500,http://localhost:3000
+      AUTH_EXEMPT_PATHS_CSV: /health,/docs,/redoc,/openapi.json,/api/v1/auth
       ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      IDENTITY_SERVICE_URL: http://identity-service:8000
+      CLAIMS_SERVICE_URL: http://claims-service:8000
+      POLICY_SERVICE_URL: http://policy-pricing-service:8000
+      FRAUD_SERVICE_URL: http://fraud-service:8000
+      PAYOUT_SERVICE_URL: http://payout-service:8000
+      AI_SERVICE_URL: http://ai-risk-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      TRIGGER_SERVICE_URL: http://trigger-service:8000
       REQUEST_TIMEOUT_SECONDS: "15"
+      UPSTREAM_RETRY_ATTEMPTS: "2"
+      UPSTREAM_RETRY_BACKOFF_SECONDS: "0.1"
+      CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+      CIRCUIT_BREAKER_OPEN_SECONDS: "30"
+      MAX_REQUEST_BODY_BYTES: "1048576"
+      RATE_LIMIT_PER_MINUTE: "120"
     depends_on:
+      - identity-service
       - analytics-service
+      - claims-service
+      - policy-pricing-service
+      - fraud-service
+      - payout-service
+      - ai-risk-service
+      - notification-service
+      - trigger-service
     ports:
       - "8001:8000"
 
@@ -360,6 +410,7 @@ services:
       - "5500:80"
 
 volumes:
+  grafana_dev_data:
   identity_db_dev_data:
   policy_db_dev_data:
   trigger_db_dev_data:

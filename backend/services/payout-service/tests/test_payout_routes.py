@@ -171,3 +171,13 @@ def test_retry_transaction_not_found(client, service_headers):
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "TRANSACTION_NOT_FOUND"
+
+
+def test_health_contract(client):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["data"]["service"] == "payout-service"
+    assert payload["data"]["checks"]["database"] in {"up", "down"}

@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import httpx
 from fastapi.testclient import TestClient
+from jose import jwt
 
 from app.main import app
 
 
 client = TestClient(app)
+
+
+def _valid_token() -> str:
+    return jwt.encode({"sub": "admin-123"}, "change-me-in-production", algorithm="HS256")
 
 
 def test_analytics_proxy_requires_bearer_token() -> None:
@@ -35,10 +40,11 @@ def test_analytics_proxy_forwards_headers_and_params(monkeypatch) -> None:
 
     monkeypatch.setattr(httpx.AsyncClient, "request", mock_request)
 
+    token = _valid_token()
     response = client.get(
         "/api/v1/analytics/timeseries?metric_type=claims&interval=day",
         headers={
-            "Authorization": "Bearer gateway-test-token",
+            "Authorization": f"Bearer {token}",
             "X-Request-ID": "req-gateway-1",
         },
     )
@@ -50,7 +56,7 @@ def test_analytics_proxy_forwards_headers_and_params(monkeypatch) -> None:
     assert ("metric_type", "claims") in captured["params"]
     assert ("interval", "day") in captured["params"]
     lowered_headers = {key.lower(): value for key, value in captured["headers"].items()}
-    assert lowered_headers["authorization"] == "Bearer gateway-test-token"
+    assert lowered_headers["authorization"] == f"Bearer {token}"
     assert lowered_headers["x-request-id"] == "req-gateway-1"
 
 
@@ -62,7 +68,7 @@ def test_analytics_proxy_returns_gateway_timeout_error(monkeypatch) -> None:
 
     response = client.get(
         "/api/v1/analytics/dashboard",
-        headers={"Authorization": "Bearer gateway-test-token", "X-Request-ID": "req-timeout"},
+        headers={"Authorization": f"Bearer {_valid_token()}", "X-Request-ID": "req-timeout"},
     )
 
     assert response.status_code == 504

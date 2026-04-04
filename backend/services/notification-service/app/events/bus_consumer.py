@@ -98,6 +98,7 @@ class NotificationEventBusConsumer:
                     exchange=self.exchange,
                     routing_key=self.settings.notification_event_routing_key,
                     headers={"x-retry-count": retries + 1},
+                    delivery_mode=2,
                     declare=[self.queue],
                     retry=True,
                 )
@@ -108,6 +109,7 @@ class NotificationEventBusConsumer:
                     exchange=self.dlx,
                     routing_key=f"{self.settings.notification_event_queue_name}.failed",
                     headers={"x-last-error": str(exc)},
+                    delivery_mode=2,
                     declare=[self.dlq],
                     retry=True,
                 )

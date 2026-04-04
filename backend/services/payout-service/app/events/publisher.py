@@ -43,6 +43,8 @@ def publish_payout_event(event_type: str, payload: dict) -> None:
             exchange=exchange,
             routing_key=routing_key,
             declare=[exchange],
+            delivery_mode=2,
+            retry=True,
         )
 
     logger.info(

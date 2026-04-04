@@ -14,6 +14,7 @@ class PolicyValidationResult:
     policy_id: str | None = None
     zone: str | None = None
     coverage_rate: float | None = None
+    degraded: bool = False
 
 
 class PolicyServiceClient:
@@ -32,7 +33,11 @@ class PolicyServiceClient:
         try:
             policy_response = self.client.get(f"/api/v1/policy/{user_id}", headers=headers)
             if policy_response.status_code >= 400:
-                return PolicyValidationResult(valid=True)
+                return PolicyValidationResult(
+                    valid=True,
+                    reason="Policy service unavailable",
+                    degraded=policy_response.status_code >= 500,
+                )
 
             policy_body = policy_response.json()
             policy_data = policy_body.get("data", policy_body)
@@ -52,9 +57,11 @@ class PolicyServiceClient:
             if validate_response.status_code >= 400:
                 return PolicyValidationResult(
                     valid=True,
+                    reason="Policy validation unavailable",
                     policy_id=str(policy_id),
                     zone=policy_data.get("zone"),
                     coverage_rate=policy_data.get("coverage_rate"),
+                    degraded=validate_response.status_code >= 500,
                 )
 
             validate_body = validate_response.json()
@@ -70,4 +77,4 @@ class PolicyServiceClient:
             )
         except Exception:
             # Contract allows mock behavior when dependencies are not ready.
-            return PolicyValidationResult(valid=True)
+            return PolicyValidationResult(valid=True, reason="Policy service unavailable", degraded=True)

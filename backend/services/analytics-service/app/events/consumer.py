@@ -95,6 +95,7 @@ class AnalyticsEventConsumer:
                     routing_key=routing_key,
                     headers={"x-retry-count": retries + 1},
                     declare=[self.queue],
+                    delivery_mode=2,
                     retry=True,
                 )
             else:
@@ -105,6 +106,7 @@ class AnalyticsEventConsumer:
                     routing_key=f"{self.settings.analytics_event_queue_name}.failed",
                     headers={"x-last-error": str(exc)},
                     declare=[self.dlq],
+                    delivery_mode=2,
                     retry=True,
                 )
             message.ack()

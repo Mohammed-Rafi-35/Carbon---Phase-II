@@ -5,11 +5,22 @@ import sys
 
 from pythonjsonlogger import jsonlogger
 
+from app.utils.log_context import get_request_id
+
+
+class RequestContextFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.request_id = get_request_id()
+        record.service = "claims-service"
+        record.operation = getattr(record, "operation", record.funcName)
+        return True
+
 
 def configure_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
-    formatter = jsonlogger.JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s")
+    formatter = jsonlogger.JsonFormatter("%(asctime)s %(request_id)s %(service)s %(operation)s %(levelname)s %(message)s")
     handler.setFormatter(formatter)
+    handler.addFilter(RequestContextFilter())
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)

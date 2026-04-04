@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import socket
 import threading
+from uuid import UUID
 
 from kombu import Connection, Consumer, Exchange, Producer, Queue
 
@@ -23,6 +24,16 @@ class ClaimsEventConsumer:
             self.settings.claims_inbound_queue_name,
             exchange=self.exchange,
             routing_key=self.settings.claims_inbound_routing_key,
+            durable=True,
+            queue_arguments={
+                "x-dead-letter-exchange": self.dlx.name,
+                "x-dead-letter-routing-key": f"{self.settings.claims_inbound_queue_name}.failed",
+            },
+        )
+        self.processing_queue = Queue(
+            self.settings.claims_processing_queue_name,
+            exchange=self.exchange,
+            routing_key=self.settings.claim_processing_routing_key,
             durable=True,
             queue_arguments={
                 "x-dead-letter-exchange": self.dlx.name,
@@ -57,12 +68,14 @@ class ClaimsEventConsumer:
                 with Connection(self.settings.rabbitmq_url) as connection:
                     self.queue.maybe_bind(connection)
                     self.queue.declare()
+                    self.processing_queue.maybe_bind(connection)
+                    self.processing_queue.declare()
                     self.dlq.maybe_bind(connection)
                     self.dlq.declare()
 
                     with Consumer(
                         connection,
-                        queues=[self.queue],
+                        queues=[self.queue, self.processing_queue],
                         callbacks=[lambda body, message: self._handle_message(connection, body, message)],
                         accept=["json"],
                         prefetch_count=self.settings.prefetch_count,
@@ -82,18 +95,22 @@ class ClaimsEventConsumer:
             payload = body.get("payload", body)
             if event_type == "DISRUPTION_DETECTED":
                 self._process_disruption(payload)
+            if event_type == "CLAIM_PROCESSING":
+                self._process_claim_processing(payload)
             message.ack()
         except Exception as exc:
             retries = int((message.headers or {}).get("x-retry-count", 0))
+            routing_key = str(message.delivery_info.get("routing_key", self.settings.claims_inbound_routing_key))
             producer = Producer(connection)
             if retries < self.settings.retry_limit:
                 producer.publish(
                     body,
                     serializer="json",
                     exchange=self.exchange,
-                    routing_key=self.settings.claims_inbound_routing_key,
+                    routing_key=routing_key,
                     headers={"x-retry-count": retries + 1},
-                    declare=[self.queue],
+                    declare=[self.queue, self.processing_queue],
+                    delivery_mode=2,
                     retry=True,
                 )
             else:
@@ -104,6 +121,7 @@ class ClaimsEventConsumer:
                     routing_key=f"{self.settings.claims_inbound_queue_name}.failed",
                     headers={"x-last-error": str(exc)},
                     declare=[self.dlq],
+                    delivery_mode=2,
                     retry=True,
                 )
             message.ack()
@@ -113,5 +131,24 @@ class ClaimsEventConsumer:
         try:
             service = ClaimService(db)
             service.create_claims_from_disruption(payload)
+        finally:
+            db.close()
+
+    def _process_claim_processing(self, payload: dict) -> None:
+        raw_claim_id = payload.get("claim_id")
+        if not raw_claim_id:
+            return
+
+        try:
+            claim_id = UUID(str(raw_claim_id))
+        except ValueError:
+            return
+
+        request_id = payload.get("request_id")
+
+        db = SessionLocal()
+        try:
+            service = ClaimService(db)
+            service.process_claim_async(claim_id=claim_id, request_id=request_id)
         finally:
             db.close()

@@ -12,6 +12,7 @@ class FraudCheckResult:
     status: str
     fraud_score: float
     reason: str | None = None
+    degraded: bool = False
 
 
 class FraudServiceClient:
@@ -49,7 +50,12 @@ class FraudServiceClient:
         try:
             response = self.client.post("/api/v1/fraud/check", headers=headers, json=payload)
             if response.status_code >= 400:
-                return FraudCheckResult(status="PASS", fraud_score=0.0)
+                return FraudCheckResult(
+                    status="PASS",
+                    fraud_score=0.0,
+                    reason="Fraud service unavailable",
+                    degraded=response.status_code >= 500,
+                )
 
             body = response.json()
             data = body.get("data", body)
@@ -58,4 +64,9 @@ class FraudServiceClient:
             reason = data.get("reason")
             return FraudCheckResult(status=status, fraud_score=fraud_score, reason=reason)
         except Exception:
-            return FraudCheckResult(status="PASS", fraud_score=0.0)
+            return FraudCheckResult(
+                status="PASS",
+                fraud_score=0.0,
+                reason="Fraud service unavailable",
+                degraded=True,
+            )

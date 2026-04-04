@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
 	integration_timeout_seconds: float = Field(default=5.0)
 	poll_interval_seconds: int = Field(default=300)
+	scheduler_lock_key: int = Field(default=42042)
 	poll_zones_csv: str = Field(default="MR-2")
 	weather_api_url: str = Field(default="https://api.open-meteo.com/v1/forecast")
 	traffic_api_url: str | None = Field(default=None)
@@ -39,6 +40,7 @@ class Settings(BaseSettings):
 	threshold_platform_outage: float = Field(default=0.5)
 
 	enable_scheduler: bool = Field(default=True)
+	enable_manual_trigger: bool = Field(default=False)
 	auto_create_tables: bool = Field(default=False)
 
 	@property

@@ -13,8 +13,13 @@ class ClaimRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def create(self, *, user_id: UUID, event_id: UUID, status: str) -> Claim:
-        claim = Claim(user_id=user_id, event_id=event_id, status=status)
+    def create(self, *, user_id: UUID, event_id: UUID, status: str, idempotency_key: str | None = None) -> Claim:
+        claim = Claim(
+            user_id=user_id,
+            event_id=event_id,
+            status=status,
+            idempotency_key=idempotency_key,
+        )
         self.db.add(claim)
         self.db.commit()
         self.db.refresh(claim)
@@ -26,6 +31,10 @@ class ClaimRepository:
 
     def get_by_user_event(self, *, user_id: UUID, event_id: UUID) -> Claim | None:
         stmt = select(Claim).where(Claim.user_id == user_id, Claim.event_id == event_id).limit(1)
+        return self.db.execute(stmt).scalar_one_or_none()
+
+    def get_by_idempotency_key(self, key: str) -> Claim | None:
+        stmt = select(Claim).where(Claim.idempotency_key == key).limit(1)
         return self.db.execute(stmt).scalar_one_or_none()
 
     def list_for_user(self, user_id: UUID) -> list[Claim]:

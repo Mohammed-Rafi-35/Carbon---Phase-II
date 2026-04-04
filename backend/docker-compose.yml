@@ -1,4 +1,28 @@
 services:
+  prometheus:
+    image: prom/prometheus:v3.7.1
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+
   identity-db:
     image: postgres:16
     container_name: identity-db
@@ -159,6 +183,23 @@ services:
       timeout: 5s
       retries: 5
 
+  ai-risk-db:
+    image: postgres:16
+    container_name: ai-risk-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_risk_db
+    ports:
+      - "5441:5432"
+    volumes:
+      - ai_risk_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   identity-service:
     image: devtrails/identity-service:1.0.0
     build:
@@ -195,8 +236,14 @@ services:
     environment:
       APP_ENV: development
       PORT: "8000"
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ai-risk-db:5432/ai_risk_db
       MODEL_PATH: ml/models/risk_model_v1.pkl
       ENABLE_EXTERNAL_SIGNALS: "false"
+      JWT_SECRET: dev-secret
+      JWT_ALGORITHM: HS256
+    depends_on:
+      ai-risk-db:
+        condition: service_healthy
     ports:
       - "8003:8000"
     healthcheck:
@@ -255,7 +302,7 @@ services:
       APP_ENV: development
       ENFORCE_HTTPS: "false"
       AUTO_CREATE_TABLES: "false"
-      ENABLE_SCHEDULER: "false"
+      ENABLE_SCHEDULER: "true"
       JWT_SECRET: dev-secret
       PORT: "8000"
     depends_on:
@@ -428,15 +475,53 @@ services:
     environment:
       APP_ENV: development
       ENFORCE_HTTPS: "false"
+      JWT_SECRET: dev-secret
+      JWT_ALGORITHM: HS256
+      CORS_ALLOW_ORIGINS_CSV: http://localhost:5501,http://localhost:3000
+      AUTH_EXEMPT_PATHS_CSV: /health,/docs,/redoc,/openapi.json,/api/v1/auth,/api/v1/risk/health
       ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      IDENTITY_SERVICE_URL: http://identity-service:8000
+      CLAIMS_SERVICE_URL: http://claims-service:8000
+      POLICY_SERVICE_URL: http://policy-pricing-service:8000
+      FRAUD_SERVICE_URL: http://fraud-service:8000
+      PAYOUT_SERVICE_URL: http://payout-service:8000
+      AI_SERVICE_URL: http://ai-risk-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      TRIGGER_SERVICE_URL: http://trigger-service:8000
       REQUEST_TIMEOUT_SECONDS: "15"
+      UPSTREAM_RETRY_ATTEMPTS: "2"
+      UPSTREAM_RETRY_BACKOFF_SECONDS: "0.1"
+      CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+      CIRCUIT_BREAKER_OPEN_SECONDS: "30"
+      MAX_REQUEST_BODY_BYTES: "1048576"
+      RATE_LIMIT_PER_MINUTE: "120"
     depends_on:
+      identity-service:
+        condition: service_healthy
       analytics-service:
+        condition: service_healthy
+      claims-service:
+        condition: service_started
+      policy-pricing-service:
+        condition: service_healthy
+      fraud-service:
+        condition: service_started
+      payout-service:
+        condition: service_started
+      ai-risk-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
+      trigger-service:
         condition: service_healthy
     ports:
       - "8001:8000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)\" || exit 1",
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -459,7 +544,7 @@ services:
       api-gateway:
         condition: service_healthy
     ports:
-      - "5500:80"
+      - "5501:80"
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost/ || exit 1"]
       interval: 30s
@@ -467,6 +552,7 @@ services:
       retries: 5
 
 volumes:
+  grafana_data:
   identity_db_data:
   policy_pricing_db_data:
   trigger_db_data:
@@ -475,4 +561,5 @@ volumes:
   payout_db_data:
   notification_db_data:
   analytics_db_data:
+  ai_risk_db_data:
 

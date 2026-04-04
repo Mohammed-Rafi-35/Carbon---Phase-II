@@ -41,6 +41,7 @@ class ClaimsEventPublisher:
                     routing_key=routing_key,
                     declare=[self.queue],
                     serializer="json",
+                    delivery_mode=2,
                     retry=True,
                 )
         except Exception as exc:
@@ -58,4 +59,11 @@ class ClaimsEventPublisher:
             event_type="CLAIM_APPROVED",
             payload=payload,
             routing_key=self.settings.claim_approved_routing_key,
+        )
+
+    def publish_claim_processing(self, payload: dict) -> None:
+        self._publish(
+            event_type="CLAIM_PROCESSING",
+            payload=payload,
+            routing_key=self.settings.claim_processing_routing_key,
         )
