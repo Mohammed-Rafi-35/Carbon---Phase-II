@@ -1,0 +1,36 @@
+{
+  "active_version": "v1",
+  "active_artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065455.pkl",
+  "history": [
+    {
+      "registered_at": "2026-04-03T06:51:17.008436+00:00",
+      "model_version": "v1",
+      "artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065116.pkl",
+      "metrics": {
+        "mae": 0.02166476684549901,
+        "rmse": 0.027793515901517196,
+        "r2": 0.9870791899421599
+      }
+    },
+    {
+      "registered_at": "2026-04-03T06:53:19.201712+00:00",
+      "model_version": "v1",
+      "artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065319.pkl",
+      "metrics": {
+        "mae": 0.02167233001050941,
+        "rmse": 0.027925137870797388,
+        "r2": 0.9852617309450336
+      }
+    },
+    {
+      "registered_at": "2026-04-03T06:54:55.576425+00:00",
+      "model_version": "v1",
+      "artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065455.pkl",
+      "metrics": {
+        "mae": 0.02167233001050941,
+        "rmse": 0.027925137870797388,
+        "r2": 0.9852617309450336
+      }
+    }
+  ]
+}

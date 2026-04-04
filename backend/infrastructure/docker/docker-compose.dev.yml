@@ -1,0 +1,370 @@
+services:
+  identity-db:
+    image: postgres:16
+    container_name: identity-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: identity_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - identity_db_dev_data:/var/lib/postgresql/data
+
+  identity-redis:
+    image: redis:7
+    container_name: identity-redis-dev
+    ports:
+      - "6379:6379"
+
+  policy-db:
+    image: postgres:16
+    container_name: policy-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: policy_pricing_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - policy_db_dev_data:/var/lib/postgresql/data
+
+  policy-rabbitmq:
+    image: rabbitmq:3.13
+    container_name: policy-rabbitmq-dev
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  trigger-db:
+    image: postgres:16
+    container_name: trigger-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trigger_db
+    ports:
+      - "5439:5432"
+    volumes:
+      - trigger_db_dev_data:/var/lib/postgresql/data
+
+  claims-db:
+    image: postgres:16
+    container_name: claims-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: claims_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - claims_db_dev_data:/var/lib/postgresql/data
+
+  fraud-db:
+    image: postgres:16
+    container_name: fraud-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fraud_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - fraud_db_dev_data:/var/lib/postgresql/data
+
+  payout-db:
+    image: postgres:16
+    container_name: payout-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payout_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - payout_db_dev_data:/var/lib/postgresql/data
+
+  notification-db:
+    image: postgres:16
+    container_name: notification-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notification_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - notification_db_dev_data:/var/lib/postgresql/data
+
+  notification-redis:
+    image: redis:7
+    container_name: notification-redis-dev
+    ports:
+      - "6380:6379"
+
+  analytics-db:
+    image: postgres:16
+    container_name: analytics-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: analytics_db
+    ports:
+      - "5440:5432"
+    volumes:
+      - analytics_db_dev_data:/var/lib/postgresql/data
+
+  identity-service:
+    image: devtrails/identity-service:1.0.0
+    build:
+      context: ../../services/identity-service
+      dockerfile: Dockerfile
+    container_name: identity-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@identity-db:5432/identity_db
+      REDIS_URL: redis://identity-redis:6379/0
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+    depends_on:
+      - identity-db
+      - identity-redis
+    ports:
+      - "8005:8000"
+
+  ai-risk-service:
+    image: devtrails/ai-risk-service:1.0.0
+    build:
+      context: ../../services/ai-risk-service
+      dockerfile: Dockerfile
+    container_name: ai-risk-service-dev
+    environment:
+      APP_ENV: development
+      PORT: "8000"
+      MODEL_PATH: ml/models/risk_model_v1.pkl
+      ENABLE_EXTERNAL_SIGNALS: "false"
+    ports:
+      - "8003:8000"
+
+  policy-pricing-service:
+    image: devtrails/policy-pricing-service:1.0.0
+    build:
+      context: ../../services/policy-pricing-service
+      dockerfile: Dockerfile
+    container_name: policy_pricing_service_dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@policy-db:5432/policy_pricing_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      REDIS_URL: redis://identity-redis:6379/0
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      IDENTITY_SERVICE_URL: http://identity-service:8000
+      AI_RISK_SERVICE_URL: http://ai-risk-service:8000
+    depends_on:
+      policy-db:
+        condition: service_started
+      policy-rabbitmq:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      ai-risk-service:
+        condition: service_started
+    ports:
+      - "8004:8000"
+
+  trigger-service:
+    image: devtrails/trigger-service:1.0.0
+    build:
+      context: ../../services/trigger-service
+      dockerfile: Dockerfile
+    container_name: trigger-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@trigger-db:5432/trigger_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      APP_ENV: development
+      ENFORCE_HTTPS: "false"
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_SCHEDULER: "false"
+      JWT_SECRET: dev-secret
+      PORT: "8000"
+    depends_on:
+      - trigger-db
+      - policy-rabbitmq
+    ports:
+      - "8008:8000"
+
+  claims-service:
+    image: devtrails/claims-service:1.0.0
+    build:
+      context: ../../services/claims-service
+      dockerfile: Dockerfile
+    container_name: claims-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@claims-db:5432/claims_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      POLICY_SERVICE_URL: http://policy-pricing-service:8000
+      FRAUD_SERVICE_URL: http://fraud-service:8000
+      DEFAULT_CLAIM_USERS_CSV: 16fd2706-8baf-433b-82eb-8c7fada847da
+    depends_on:
+      - claims-db
+      - policy-rabbitmq
+      - policy-pricing-service
+      - fraud-service
+    ports:
+      - "8009:8000"
+
+  fraud-service:
+    image: devtrails/fraud-service:1.0.0
+    build:
+      context: ../../services/fraud-service
+      dockerfile: Dockerfile
+    container_name: fraud-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@fraud-db:5432/fraud_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      FRAUD_FAIL_THRESHOLD: "0.70"
+    depends_on:
+      - fraud-db
+      - policy-rabbitmq
+    ports:
+      - "8010:8000"
+
+  payout-service:
+    image: devtrails/payout-service:1.0.0
+    build:
+      context: ../../services/payout-service
+      dockerfile: Dockerfile
+    container_name: payout-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@payout-db:5432/payout_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_PUBLISH: "true"
+      ENABLE_EVENT_CONSUMER: "true"
+      PAYMENT_PROVIDER: mock
+    depends_on:
+      - payout-db
+      - policy-rabbitmq
+    ports:
+      - "8007:8000"
+
+  notification-service:
+    image: devtrails/notification-service:1.0.0
+    build:
+      context: ../../services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_BUS_CONSUMER: "true"
+      SMS_API_KEY: dev-sms-key
+      PUSH_API_KEY: dev-push-key
+    depends_on:
+      - notification-db
+      - notification-redis
+      - policy-rabbitmq
+    ports:
+      - "8006:8000"
+
+  notification-worker:
+    image: devtrails/notification-service:1.0.0
+    build:
+      context: ../../services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-worker-dev
+    command: celery -A app.worker:celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      SMS_API_KEY: dev-sms-key
+      PUSH_API_KEY: dev-push-key
+    depends_on:
+      - notification-db
+      - notification-redis
+      - policy-rabbitmq
+
+  analytics-service:
+    image: devtrails/analytics-service:1.0.0
+    build:
+      context: ../../services/analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service-dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@analytics-db:5432/analytics_db
+      RABBITMQ_URL: amqp://guest:guest@policy-rabbitmq:5672//
+      REDIS_URL: redis://identity-redis:6379/1
+      APP_ENV: development
+      JWT_SECRET: dev-secret
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_CONSUMER: "true"
+      ANALYTICS_EVENT_ROUTING_KEY: "#"
+    depends_on:
+      - analytics-db
+      - policy-rabbitmq
+      - identity-redis
+    ports:
+      - "8011:8000"
+
+  api-gateway:
+    image: devtrails/api-gateway:1.0.0
+    build:
+      context: ../../api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway-dev
+    environment:
+      APP_ENV: development
+      ENFORCE_HTTPS: "false"
+      ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      REQUEST_TIMEOUT_SECONDS: "15"
+    depends_on:
+      - analytics-service
+    ports:
+      - "8001:8000"
+
+  frontend-console:
+    image: devtrails/frontend-console:1.0.0
+    build:
+      context: ../../../frontend
+      dockerfile: Dockerfile
+    container_name: frontend-console-dev
+    depends_on:
+      - identity-service
+      - policy-pricing-service
+      - claims-service
+      - payout-service
+      - api-gateway
+    ports:
+      - "5500:80"
+
+volumes:
+  identity_db_dev_data:
+  policy_db_dev_data:
+  trigger_db_dev_data:
+  claims_db_dev_data:
+  fraud_db_dev_data:
+  payout_db_dev_data:
+  notification_db_dev_data:
+  analytics_db_dev_data:

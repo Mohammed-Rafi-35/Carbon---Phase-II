@@ -1,0 +1,45 @@
+services:
+  payout-db:
+    image: postgres:16
+    container_name: payout-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payout_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - payout_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payout-service:
+    image: payout-service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payout-service
+    env_file:
+      - .env.development
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@payout-db:5432/payout_db
+      APP_ENV: development
+      ENFORCE_HTTPS: "false"
+      AUTO_CREATE_TABLES: "false"
+      PORT: "8000"
+    depends_on:
+      payout-db:
+        condition: service_healthy
+    ports:
+      - "8007:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  payout_db_data:

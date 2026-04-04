@@ -1,0 +1,176 @@
+{
+  "version": "v1",
+  "generated_at": "2026-04-03T06:54:55.577085+00:00",
+  "artifact": "risk_model_v1.pkl",
+  "versioned_artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065455.pkl",
+  "classification_strategy": "thresholds",
+  "training_rows": 9600,
+  "validation_rows": 2400,
+  "features": [
+    "disruption_freq",
+    "duration",
+    "traffic",
+    "order_drop",
+    "activity",
+    "claims",
+    "disruption_traffic_interaction",
+    "exposure_index",
+    "resilience_gap",
+    "rolling_disruption_3h",
+    "traffic_lag_1",
+    "previous_risk_score",
+    "risk_trend_1h"
+  ],
+  "metrics": {
+    "mae": 0.02167233001050941,
+    "rmse": 0.027925137870797388,
+    "r2": 0.9852617309450336
+  },
+  "train_metrics": {
+    "mae": 0.01816203773097837,
+    "rmse": 0.023390621588570765,
+    "r2": 0.9897634818433252
+  },
+  "classification_metrics": {
+    "train": {
+      "accuracy": 0.9455208333333334,
+      "precision_macro": 0.9447012619265545,
+      "recall_macro": 0.9360149482524543,
+      "f1_macro": 0.9402127767184414
+    },
+    "test": {
+      "accuracy": 0.935,
+      "precision_macro": 0.9319478645306999,
+      "recall_macro": 0.9253536364954021,
+      "f1_macro": 0.9285640803105237
+    }
+  },
+  "cross_validation": {
+    "mae_mean": 0.022217216864190037,
+    "mae_std": 0.0003472327323408236,
+    "rmse_mean": 0.02855551783546813,
+    "rmse_std": 0.0004133765630745527,
+    "r2_mean": 0.9847347280310773,
+    "r2_std": 0.0005276826782203538
+  },
+  "fit_quality": {
+    "status": "balanced",
+    "message": "Train/test behavior is stable with low generalization gap.",
+    "r2_gap": 0.004501750898291634,
+    "rmse_ratio": 1.1938604438131861
+  },
+  "feature_importance": {
+    "disruption_freq": 0.14167682136480572,
+    "duration": 0.0035599760978015974,
+    "traffic": 4.877835608342555e-05,
+    "order_drop": 0.011368777060582935,
+    "activity": 0.0005989267173086449,
+    "claims": 0.008903182653388391,
+    "disruption_traffic_interaction": 0.770309739069667,
+    "exposure_index": 0.03402077970006264,
+    "resilience_gap": 0.00064952733169019,
+    "rolling_disruption_3h": 0.009760828640605313,
+    "traffic_lag_1": 0.0005471016897666773,
+    "previous_risk_score": 0.018355184371115153,
+    "risk_trend_1h": 0.00020037694712203468
+  },
+  "feature_importance_validation": {
+    "checks": {
+      "disruption_dominance": true,
+      "temporal_signal_present": true
+    },
+    "status": "passed",
+    "failures": []
+  },
+  "feature_stats": {
+    "disruption_freq": {
+      "mean": 0.38161464020820024,
+      "std": 0.2115605467135241,
+      "min": 0.0,
+      "max": 0.982030958183938
+    },
+    "duration": {
+      "mean": 0.34372283620164945,
+      "std": 0.21664029894022077,
+      "min": 0.0,
+      "max": 0.9921088928407877
+    },
+    "traffic": {
+      "mean": 0.36605021951328315,
+      "std": 0.1889876848168713,
+      "min": 0.0,
+      "max": 0.9556966779798709
+    },
+    "order_drop": {
+      "mean": 0.36068368650269245,
+      "std": 0.22739370316329427,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "activity": {
+      "mean": 0.6716100890793216,
+      "std": 0.19715242291818785,
+      "min": 0.05579288593514725,
+      "max": 1.0
+    },
+    "claims": {
+      "mean": 0.3254474009430432,
+      "std": 0.19865593156041947,
+      "min": 0.0,
+      "max": 0.9236139951697503
+    },
+    "disruption_traffic_interaction": {
+      "mean": 0.17556491167726812,
+      "std": 0.1715519714484825,
+      "min": 0.0,
+      "max": 0.8764838645469627
+    },
+    "exposure_index": {
+      "mean": 0.3548865278574663,
+      "std": 0.19702523864843935,
+      "min": 0.0,
+      "max": 0.9376954456028734
+    },
+    "resilience_gap": {
+      "mean": 0.3283899109206783,
+      "std": 0.19715242291818785,
+      "min": 0.0,
+      "max": 0.9442071140648527
+    },
+    "rolling_disruption_3h": {
+      "mean": 0.38166977315800865,
+      "std": 0.13116819378432568,
+      "min": 0.056962221821774996,
+      "max": 0.857547365412685
+    },
+    "traffic_lag_1": {
+      "mean": 0.3661345945892065,
+      "std": 0.1889835843583921,
+      "min": 0.0,
+      "max": 0.9556966779798709
+    },
+    "previous_risk_score": {
+      "mean": 0.5541581079995401,
+      "std": 0.23094137979551763,
+      "min": 0.0751232624605902,
+      "max": 1.0
+    },
+    "risk_trend_1h": {
+      "mean": 0.4999665850998728,
+      "std": 0.09528315603495044,
+      "min": 0.21296353992342082,
+      "max": 0.8091064655531859
+    }
+  },
+  "prediction_stats": {
+    "mean": 0.5540609250624621,
+    "std": 0.22762514906761258,
+    "min": 0.14659249374017827,
+    "max": 0.9994451766895375
+  },
+  "feedback_rows_used": 0,
+  "registry": {
+    "active_version": "v1",
+    "active_artifact": "F:\\Studies\\Project\\Hackathon\\DEVTrails_3\\backend\\services\\ai-risk-service\\ml\\models\\risk_model_v1_20260403065455.pkl"
+  }
+}

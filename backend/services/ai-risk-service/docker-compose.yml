@@ -1,0 +1,51 @@
+services:
+  ai-risk-db:
+    image: postgres:16
+    container_name: ai-risk-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_risk_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - ai_risk_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-risk-service:
+    image: ai-risk-service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-risk-service
+    environment:
+      APP_ENV: development
+      PORT: "8000"
+      MODEL_PATH: ml/models/risk_model_v1.pkl
+      MODEL_REGISTRY_PATH: ml/models/model_registry.json
+      METADATA_PATH: ml/models/metadata.json
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@ai-risk-db:5432/ai_risk_db
+      RUN_MIGRATIONS: "true"
+      ENABLE_EXTERNAL_SIGNALS: "false"
+      JWT_SECRET: change-me-in-production
+    depends_on:
+      ai-risk-db:
+        condition: service_healthy
+    ports:
+      - "${AI_RISK_PORT:-8003}:8000"
+    volumes:
+      - ./ml/models:/app/ml/models
+      - ./data/feedback:/app/data/feedback
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ai_risk_db_data:

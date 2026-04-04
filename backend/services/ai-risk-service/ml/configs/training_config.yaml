@@ -1,0 +1,22 @@
+dataset:
+  samples: 12000
+  random_seed: 42
+  test_size: 0.2
+
+evaluation:
+  cv_folds: 5
+  min_test_r2: 0.75
+  max_r2_gap: 0.08
+  max_rmse_ratio: 1.4
+
+model:
+  version: "v1"
+  n_estimators: 240
+  max_depth: 8
+  min_samples_split: 14
+  min_samples_leaf: 10
+  random_state: 42
+
+feedback:
+  include: true
+  min_rows: 20

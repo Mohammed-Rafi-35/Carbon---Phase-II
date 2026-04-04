@@ -1,0 +1,117 @@
+services:
+  notification-db:
+    image: postgres:16
+    container_name: notification-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notification_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: notification-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  notification-redis:
+    image: redis:7
+    container_name: notification-redis
+    ports:
+      - "6380:6379"
+
+  notification-api:
+    image: devtrails/notification-service:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://guest:guest@notification-rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: development
+      SMS_API_KEY: ${SMS_API_KEY:-dev-sms-key}
+      PUSH_API_KEY: ${PUSH_API_KEY:-dev-push-key}
+      MAX_RETRIES: 3
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      ENFORCE_HTTPS: "false"
+      AUTO_CREATE_TABLES: "false"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      notification-rabbitmq:
+        condition: service_healthy
+      notification-redis:
+        condition: service_started
+    ports:
+      - "8006:8000"
+
+  notification-worker:
+    image: devtrails/notification-service:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notification-service-worker
+    command:
+      - sh
+      - -c
+      - |
+        python - <<'PY'
+        import socket
+        import time
+
+        host = "notification-rabbitmq"
+        port = 5672
+        attempts = 30
+
+        for _ in range(attempts):
+            sock = socket.socket()
+            sock.settimeout(1)
+            try:
+                sock.connect((host, port))
+                sock.close()
+                break
+            except OSError:
+                time.sleep(1)
+            finally:
+                sock.close()
+        else:
+            raise SystemExit("RabbitMQ did not become reachable in time")
+        PY
+        celery -A app.worker:celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://guest:guest@notification-rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: development
+      SMS_API_KEY: ${SMS_API_KEY:-dev-sms-key}
+      PUSH_API_KEY: ${PUSH_API_KEY:-dev-push-key}
+      MAX_RETRIES: 3
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      ENFORCE_HTTPS: "false"
+      AUTO_CREATE_TABLES: "false"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      notification-rabbitmq:
+        condition: service_healthy
+      notification-redis:
+        condition: service_started
+
+volumes:
+  notification_db_data:

@@ -1,0 +1,64 @@
+name: identity-service-ci
+
+on:
+  push:
+    paths:
+      - backend/services/identity-service/**
+      - .github/workflows/identity-service-ci.yml
+  pull_request:
+    paths:
+      - backend/services/identity-service/**
+      - .github/workflows/identity-service-ci.yml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/services/identity-service
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: identity_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/identity_db
+      JWT_SECRET: ci-secret
+      JWT_EXPIRY: 3600
+      REDIS_URL: redis://localhost:6379/0
+      APP_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        run: alembic upgrade head
+
+      - name: Run tests
+        run: pytest --maxfail=1 --disable-warnings -q

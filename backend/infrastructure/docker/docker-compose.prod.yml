@@ -1,0 +1,567 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: carbon-rabbitmq-prod-1
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    volumes:
+      - carbon_rabbitmq_prod_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - private-network
+
+  identity-db:
+    image: postgres:16
+    container_name: carbon-identity-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: identity_db
+    volumes:
+      - carbon_identity_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  policy-db:
+    image: postgres:16
+    container_name: carbon-policy-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: policy_pricing_db
+    volumes:
+      - carbon_policy_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  claims-db:
+    image: postgres:16
+    container_name: carbon-claims-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: claims_db
+    volumes:
+      - carbon_claims_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  fraud-db:
+    image: postgres:16
+    container_name: carbon-fraud-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: fraud_db
+    volumes:
+      - carbon_fraud_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  payout-db:
+    image: postgres:16
+    container_name: carbon-payout-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: payout_db
+    volumes:
+      - carbon_payout_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  notification-db:
+    image: postgres:16
+    container_name: carbon-notification-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: notification_db
+    volumes:
+      - carbon_notification_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  analytics-db:
+    image: postgres:16
+    container_name: carbon-analytics-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: analytics_db
+    volumes:
+      - carbon_analytics_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  trigger-db:
+    image: postgres:16
+    container_name: carbon-trigger-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: trigger_db
+    volumes:
+      - carbon_trigger_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  ai-risk-db:
+    image: postgres:16
+    container_name: carbon-ai-risk-db-prod-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ai_risk_db
+    volumes:
+      - carbon_ai_risk_db_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  identity-redis:
+    image: redis:7
+    container_name: carbon-identity-redis-prod-1
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - carbon_identity_redis_prod_data:/data
+    networks:
+      - private-network
+
+  notification-redis:
+    image: redis:7
+    container_name: carbon-notification-redis-prod-1
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - carbon_notification_redis_prod_data:/data
+    networks:
+      - private-network
+
+  identity-service:
+    image: carbon/identity-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/identity-service
+      dockerfile: Dockerfile
+    container_name: carbon-identity-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@identity-db:5432/identity_db
+      REDIS_URL: redis://identity-redis:6379/0
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      AUTO_CREATE_TABLES: "false"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ENABLE_DEV_SQLITE_FALLBACK: "false"
+      PORT: "8000"
+    depends_on:
+      identity-db:
+        condition: service_healthy
+      identity-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  ai-risk-service:
+    image: carbon/ai-risk-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/ai-risk-service
+      dockerfile: Dockerfile
+    container_name: carbon-ai-risk-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@ai-risk-db:5432/ai_risk_db
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      PORT: "8000"
+      MODEL_PATH: ml/models/risk_model_v1.pkl
+      ENABLE_EXTERNAL_SIGNALS: "false"
+      DATABASE_CONNECT_TIMEOUT_SECONDS: ${DATABASE_CONNECT_TIMEOUT_SECONDS:-5}
+    volumes:
+      - carbon_ai_risk_model_prod_data:/app/ml/models
+      - carbon_ai_risk_feedback_prod_data:/app/data/feedback
+    depends_on:
+      ai-risk-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "8003:8000"
+    networks:
+      - public-network
+      - private-network
+
+  policy-pricing-service:
+    image: carbon/policy-pricing-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/policy-pricing-service
+      dockerfile: Dockerfile
+    container_name: carbon-policy-pricing-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@policy-db:5432/policy_pricing_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      REDIS_URL: redis://identity-redis:6379/0
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      IDENTITY_SERVICE_URL: http://identity-service:8000
+      FRAUD_SERVICE_URL: http://fraud-service:8000
+      CLAIMS_SERVICE_URL: http://claims-service:8000
+      AI_RISK_SERVICE_URL: http://ai-risk-service:8000
+      PORT: "8000"
+    depends_on:
+      policy-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      ai-risk-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  claims-service:
+    image: carbon/claims-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/claims-service
+      dockerfile: Dockerfile
+    container_name: carbon-claims-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@claims-db:5432/claims_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      POLICY_SERVICE_URL: http://policy-pricing-service:8000
+      FRAUD_SERVICE_URL: http://fraud-service:8000
+      AI_SERVICE_URL: http://ai-risk-service:8000
+      PAYOUT_SERVICE_URL: http://payout-service:8000
+      DEFAULT_CLAIM_USERS_CSV: 16fd2706-8baf-433b-82eb-8c7fada847da
+      PORT: "8000"
+    depends_on:
+      claims-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      policy-pricing-service:
+        condition: service_healthy
+      fraud-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  fraud-service:
+    image: carbon/fraud-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/fraud-service
+      dockerfile: Dockerfile
+    container_name: carbon-fraud-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@fraud-db:5432/fraud_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      FRAUD_FAIL_THRESHOLD: "0.70"
+      PORT: "8000"
+    depends_on:
+      fraud-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  payout-service:
+    image: carbon/payout-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/payout-service
+      dockerfile: Dockerfile
+    container_name: carbon-payout-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@payout-db:5432/payout_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_PUBLISH: "true"
+      ENABLE_EVENT_CONSUMER: "true"
+      PAYMENT_PROVIDER: mock
+      PORT: "8000"
+    depends_on:
+      payout-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  notification-service:
+    image: carbon/notification-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/notification-service
+      dockerfile: Dockerfile
+    container_name: carbon-notification-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_BUS_CONSUMER: "true"
+      SMS_API_KEY: ${SMS_API_KEY:-dev-sms-key}
+      PUSH_API_KEY: ${PUSH_API_KEY:-dev-push-key}
+      PORT: "8000"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      notification-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  notification-worker:
+    image: carbon/notification-service:${CARBON_VERSION:-v1.0.0}
+    container_name: carbon-notification-worker-prod-1
+    restart: unless-stopped
+    command: celery -A app.worker:celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@notification-db:5432/notification_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      REDIS_URL: redis://notification-redis:6379/0
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      SMS_API_KEY: ${SMS_API_KEY:-dev-sms-key}
+      PUSH_API_KEY: ${PUSH_API_KEY:-dev-push-key}
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      notification-redis:
+        condition: service_started
+    networks:
+      - private-network
+
+  trigger-service:
+    image: carbon/trigger-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/trigger-service
+      dockerfile: Dockerfile
+    container_name: carbon-trigger-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@trigger-db:5432/trigger_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_SCHEDULER: "false"
+      PORT: "8000"
+    depends_on:
+      trigger-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys,urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3); sys.exit(0 if r.getcode()==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  analytics-service:
+    image: carbon/analytics-service:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../services/analytics-service
+      dockerfile: Dockerfile
+    container_name: carbon-analytics-service-prod-1
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@analytics-db:5432/analytics_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672//
+      REDIS_URL: redis://identity-redis:6379/1
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      AUTO_CREATE_TABLES: "false"
+      ENABLE_EVENT_CONSUMER: "true"
+      ANALYTICS_EVENT_ROUTING_KEY: "#"
+      PORT: "8000"
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      identity-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private-network
+
+  api-gateway:
+    image: carbon/api-gateway:${CARBON_VERSION:-v1.0.0}
+    build:
+      context: ../../api-gateway
+      dockerfile: Dockerfile
+    container_name: carbon-api-gateway-prod-1
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      IDENTITY_SERVICE_URL: http://identity-service:8000
+      REQUEST_TIMEOUT_SECONDS: "15"
+    depends_on:
+      analytics-service:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys,urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3); sys.exit(0 if r.getcode()==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - public-network
+      - private-network
+
+volumes:
+  carbon_rabbitmq_prod_data:
+  carbon_identity_db_prod_data:
+  carbon_policy_db_prod_data:
+  carbon_claims_db_prod_data:
+  carbon_fraud_db_prod_data:
+  carbon_payout_db_prod_data:
+  carbon_notification_db_prod_data:
+  carbon_analytics_db_prod_data:
+  carbon_trigger_db_prod_data:
+  carbon_ai_risk_db_prod_data:
+  carbon_identity_redis_prod_data:
+  carbon_notification_redis_prod_data:
+  carbon_ai_risk_model_prod_data:
+  carbon_ai_risk_feedback_prod_data:
+
+networks:
+  public-network:
+    name: carbon-public-network
+  private-network:
+    name: carbon-private-network
+    internal: true
